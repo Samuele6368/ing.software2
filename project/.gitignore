@@ -1,0 +1,12 @@
+.venv/
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+student_exam_manager.db
+database.db
+*.db
+dist/
+build/
+*.spec
+
