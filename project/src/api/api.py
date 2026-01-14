@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations #abilita la sintassi moderna anche per versioni più datate di python
 
 from services import course_service, exam_service, registration_service, student_service
 
