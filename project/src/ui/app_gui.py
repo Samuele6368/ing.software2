@@ -1,24 +1,30 @@
-from __future__ import annotations
+# SETUP
+from __future__ import annotations  # Permette la valutazione ritardata delle annotazioni
 
-import tkinter as tk
+import tkinter as tk                # Libreia tkinter per l'interfaccia grafica
 from tkinter import messagebox, ttk
 
-from api import api
-from db.database import init_db
+from api import api                 # Importa l'API per la gestione degli studenti e degli esami
+from db.database import init_db     # Importa la funzione di inizializzazione del database
 
 
+# Classe principale per l'interfaccia grafica dell'applicazione
 class StudentExamGUI:
-    def __init__(self, root: tk.Tk):
+
+    # Inizializza la finestra principale
+    def __init__(self, root: tk.Tk):  
         self.root = root
         self.root.title("StudentExamManager")
         self.root.geometry("1200x720")
 
+        # Inizializza liste vuote per tenere traccia dei menu a tendina (Combobox)
         self.student_selectors: list[ttk.Combobox] = []
         self.course_selectors: list[ttk.Combobox] = []
         self.exam_selectors: list[ttk.Combobox] = []
         self.exam_value_map: dict[str, tuple[str, str]] = {}
         self._student_cache: list[dict] = []
 
+        # Crea il layout principale diviso in due: menu a sinistra e contenuti a destra
         self.main_frame = ttk.Frame(self.root, padding=10)
         self.main_frame.pack(fill="both", expand=True)
 
@@ -27,6 +33,7 @@ class StudentExamGUI:
         self.content_frame = ttk.Frame(self.main_frame)
         self.content_frame.pack(side="right", fill="both", expand=True)
 
+        # Inizializza il dizionario delle diverse schermate
         self.views: dict[str, ttk.Frame] = {}
         self._build_menu()
         self._build_student_view()
@@ -35,24 +42,26 @@ class StudentExamGUI:
         self._build_grades_view()
         self.show_view("studenti")
 
+    # NAVIGAZIONE NEL MENU
     def _build_menu(self) -> None:
-        buttons = [
-            ("Studenti", lambda: self.show_view("studenti")),
+        buttons = [     # Crea i pulsanti del menu tramite un elenco di tuple (bottone, comando)
+            ("Studenti", lambda: self.show_view("studenti")), # "lambda" ritarda l'esecuzione di "show.view" fino al click
             ("Corsi & Appelli", lambda: self.show_view("corsi")),
             ("Iscrizioni", lambda: self.show_view("iscrizioni")),
             ("Voti & Libretto", lambda: self.show_view("voti")),
-            ("Exit", self.root.destroy),
+            ("Chiudi", self.root.destroy),
         ]
         for text, command in buttons:
             ttk.Button(self.menu_frame, text=text, command=command).pack(fill="x", pady=5)
 
+
     def show_view(self, name: str) -> None:
         for frame in self.views.values():
-            frame.pack_forget()
-        frame = self.views[name]
+            frame.pack_forget()  # "pack_forget" nasconde tutte le schermate
+        frame = self.views[name] # "self.views" mostra la schermata selezionata
         frame.pack(fill="both", expand=True)
         if name == "studenti":
-            self._refresh_students()
+            self._refresh_students() # Aggiorna i dati nel database
         elif name == "corsi":
             self._refresh_courses()
         elif name == "iscrizioni":
@@ -60,14 +69,15 @@ class StudentExamGUI:
         elif name == "voti":
             self._refresh_grade_view()
 
+    # SCHERMATA "STUDENTI"
     def _build_student_view(self) -> None:
         frame = ttk.Frame(self.content_frame, padding=10)
         self.views["studenti"] = frame
 
-        form = ttk.LabelFrame(frame, text="Nuovo studente", padding=10)
+        form = ttk.LabelFrame(frame, text="Nuovo studente", padding=10) 
         form.pack(fill="x", pady=10)
-        self.var_matricola = tk.StringVar()
-        self.var_nome = tk.StringVar()
+        self.var_matricola = tk.StringVar() # "tk.StringVar" = variabili Tkinter per memorizzare i 
+        self.var_nome = tk.StringVar()      # dati del form quando l'utente li inserisce
         self.var_cognome = tk.StringVar()
         ttk.Label(form, text="Matricola").grid(row=0, column=0, sticky="w")
         ttk.Entry(form, textvariable=self.var_matricola).grid(row=0, column=1, padx=5, pady=2)
@@ -80,6 +90,7 @@ class StudentExamGUI:
         table_frame = ttk.LabelFrame(frame, text="Elenco studenti", padding=10)
         table_frame.pack(fill="both", expand=True)
 
+        # Creazione della tabella per l'elenco studenti con "Treeview"
         columns = ("matricola", "nome", "cognome")
         self.student_tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=12)
         for col in columns:
@@ -95,6 +106,8 @@ class StudentExamGUI:
         ttk.Button(btn_frame, text="Modifica selezionato", command=self._edit_student).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="Elimina selezionato", command=self._delete_student).pack(side="left", padx=5)
 
+    # SCHERMATA "CORSI"
+    # Vado a gestire due entità: Corsi e Appelli
     def _build_course_view(self) -> None:
         frame = ttk.Frame(self.content_frame, padding=10)
         self.views["corsi"] = frame
@@ -119,7 +132,7 @@ class StudentExamGUI:
         ttk.Label(exam_form, text="Codice corso").grid(row=0, column=0, sticky="w")
         course_combo = ttk.Combobox(exam_form, textvariable=self.var_exam_course, state="readonly")
         course_combo.grid(row=0, column=1, padx=5, pady=2)
-        self.course_selectors.append(course_combo)
+        self.course_selectors.append(course_combo) 
         ttk.Label(exam_form, text="Data (YYYY-MM-DD)").grid(row=1, column=0, sticky="w")
         ttk.Entry(exam_form, textvariable=self.var_exam_date).grid(row=1, column=1, padx=5, pady=2)
         ttk.Button(exam_form, text="Crea appello", command=self._add_exam).grid(row=0, column=2, rowspan=2, padx=10)
@@ -148,6 +161,7 @@ class StudentExamGUI:
         exam_btns.pack(fill="x", pady=5)
         ttk.Button(exam_btns, text="Elimina appello", command=self._delete_exam).pack(side="left")
 
+    # SCHERMATA "ISCRIZIONI"
     def _build_enrollment_view(self) -> None:
         frame = ttk.Frame(self.content_frame, padding=10)
         self.views["iscrizioni"] = frame
@@ -188,6 +202,7 @@ class StudentExamGUI:
         enroll_scroll.pack(side="right", fill="y")
         ttk.Button(frame, text="Rimuovi iscrizione selezionata", command=self._delete_enrollment).pack(pady=10)
 
+    # SCHERMATA "VOTI"
     def _build_grades_view(self) -> None:
         frame = ttk.Frame(self.content_frame, padding=10)
         self.views["voti"] = frame
@@ -232,10 +247,13 @@ class StudentExamGUI:
         self.average_label = ttk.Label(frame, text="Media: - | CFU totali: 0")
         self.average_label.pack(pady=10)
 
+    # REFRESH:
+    # Prende una lista di menu a tendina e aggiorna le opzioni disponibili.
     def _set_combobox_values(self, combos: list[ttk.Combobox], values: list[str]) -> None:
         for combo in combos:
             combo["values"] = values
 
+    # AGGIUNTA STUDENTE
     def _add_student(self) -> None:
         matricola = self.var_matricola.get()
         # Validazione locale della matricola prima di chiamare l'API
@@ -249,6 +267,7 @@ class StudentExamGUI:
         if int(matricola_stripped) <= 0:
             messagebox.showerror("Errore", "Formato non valido: la matricola deve essere un numero intero.")
             return
+        # Chiamo l'API per aggiungere lo studente nel database
         try:
             api.add_student(matricola, self.var_nome.get(), self.var_cognome.get())
         except ValueError as exc:
@@ -260,6 +279,7 @@ class StudentExamGUI:
         self.var_cognome.set("")
         self._refresh_students()
 
+    # MODIFICA STUDENTE
     def _edit_student(self) -> None:
         selection = self.student_tree.selection()
         if not selection:
@@ -275,6 +295,7 @@ class StudentExamGUI:
         tk.Entry(edit_window, textvariable=nome_var).grid(row=0, column=1, padx=5, pady=5)
         tk.Entry(edit_window, textvariable=cognome_var).grid(row=1, column=1, padx=5, pady=5)
 
+        # salva le modifiche
         def save_changes() -> None:
             try:
                 api.edit_student(matricola, nome_var.get(), cognome_var.get())
@@ -287,6 +308,7 @@ class StudentExamGUI:
 
         ttk.Button(edit_window, text="Salva", command=save_changes).grid(row=2, column=0, columnspan=2, pady=10)
 
+    # ELIMINA STUDENTE
     def _delete_student(self) -> None:
         selection = self.student_tree.selection()
         if not selection:
@@ -303,6 +325,7 @@ class StudentExamGUI:
         messagebox.showinfo("Successo", "Studente eliminato.")
         self._refresh_students()
 
+    # AGGIUNTA CORSO
     def _add_course(self) -> None:
         try:
             cfu = int(self.var_course_cfu.get())
@@ -320,6 +343,7 @@ class StudentExamGUI:
         self.var_course_cfu.set("")
         self._refresh_courses()
 
+    # AGGIUNTA ESAME
     def _add_exam(self) -> None:
         try:
             api.create_exam(self.var_exam_course.get(), self.var_exam_date.get())
@@ -331,6 +355,7 @@ class StudentExamGUI:
         self._refresh_exams()
         self._refresh_enrollments()
 
+    # ELIMINA CORSO 
     def _delete_course(self) -> None:
         selection = self.courses_tree.selection()
         if not selection:
@@ -348,6 +373,7 @@ class StudentExamGUI:
         self._refresh_courses()
         self._refresh_enrollments()
 
+    # ELIMINA ESAME
     def _delete_exam(self) -> None:
         selection = self.exams_tree.selection()
         if not selection:
@@ -365,6 +391,7 @@ class StudentExamGUI:
         self._refresh_exams()
         self._refresh_enrollments()
 
+    # ISCRIZIONE STUDENTE
     def _enroll_student(self) -> None:
         matricola = self.var_enroll_student.get()
         exam_label = self.var_enroll_exam.get()
@@ -381,6 +408,7 @@ class StudentExamGUI:
         self.var_enroll_exam.set("")
         self._refresh_enrollments()
 
+    # ELIMINA ISCRIZIONE
     def _delete_enrollment(self) -> None:
         selection = getattr(self, "enrollments_tree", None)
         if selection is None:
@@ -404,6 +432,7 @@ class StudentExamGUI:
         self._refresh_enrollments()
         self._refresh_grade_view()
 
+    # REGISTRA VOTO
     def _record_grade(self) -> None:
         matricola = self.var_grade_student.get()
         selection = self.grades_tree.selection()
@@ -430,6 +459,7 @@ class StudentExamGUI:
         self.var_grade_lode.set(False)
         self._refresh_grade_view()
 
+    # RESET VOTO
     def _reset_grade(self) -> None:
         matricola = self.var_grade_student.get()
         selection = self.grades_tree.selection()
@@ -453,6 +483,7 @@ class StudentExamGUI:
         messagebox.showinfo("Successo", "Voto ripristinato.")
         self._refresh_grade_view()
 
+    # REFRESH STUDENTI
     def _refresh_students(self) -> None:
         students = self._fetch_students()
         for item in self.student_tree.get_children():
@@ -460,6 +491,7 @@ class StudentExamGUI:
         for student in students:
             self.student_tree.insert("", "end", values=(student["matricola"], student["nome"], student["cognome"]))
 
+    # RECUPERA STUDENTI
     def _fetch_students(self) -> list[dict]:
         try:
             students = api.list_students()
@@ -470,10 +502,12 @@ class StudentExamGUI:
         self._set_combobox_values(self.student_selectors, [s["matricola"] for s in students])
         return students
 
+    # REFFRESH CORSI
     def _refresh_courses(self) -> None:
         self._refresh_course_list()
         self._refresh_exams()
 
+    # REFRESH LISTA CORSI
     def _refresh_course_list(self) -> None:
         for item in self.courses_tree.get_children():
             self.courses_tree.delete(item)
@@ -486,6 +520,7 @@ class StudentExamGUI:
             self.courses_tree.insert("", "end", values=(course["codice"], course["nome"], course["cfu"]))
         self._set_combobox_values(self.course_selectors, [c["codice"] for c in courses])
 
+    # REFRESH ESAMI
     def _refresh_exams(self) -> None:
         for item in self.exams_tree.get_children():
             self.exams_tree.delete(item)
@@ -503,11 +538,13 @@ class StudentExamGUI:
             self.exam_value_map[label] = (exam["course_codice"], exam["data_appello"])
         self._set_combobox_values(self.exam_selectors, exam_values)
 
+    # REFRESH DATI D'ISCRIZIONE
     def _refresh_enrollment_data(self) -> None:
         self._fetch_students()
         self._refresh_exams()
         self._refresh_enrollments()
 
+    # REFRESH ISCRIZIONI
     def _refresh_enrollments(self) -> None:
         tree = getattr(self, "enrollments_tree", None)
         if tree is None:
@@ -533,6 +570,7 @@ class StudentExamGUI:
                 ),
             )
 
+    # REFRESH VOTI
     def _refresh_grade_view(self) -> None:
         students = self._fetch_students()
         matricola = self.var_grade_student.get()
@@ -568,8 +606,7 @@ class StudentExamGUI:
 
 
 def run_app() -> None:
-    init_db()
-    root = tk.Tk()
-    StudentExamGUI(root)
-    root.mainloop()
-
+    init_db()               # Crea le tabelle nel database se non esistono
+    root = tk.Tk()          # Crea la finestra principale
+    StudentExamGUI(root)    # Inizializza l'interfaccia grafica
+    root.mainloop()         # Avvia il loop principale di Tkinter per gestire gli eventi dell'interfaccia grafica
