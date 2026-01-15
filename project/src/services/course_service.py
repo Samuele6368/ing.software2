@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from db.database import get_connection
 
-
+#crea corso nel database
 def create_course(codice: str, nome: str, cfu: int) -> dict:
     codice_clean = codice.strip()
     nome_clean = nome.strip()
