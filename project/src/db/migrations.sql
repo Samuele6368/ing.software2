@@ -25,9 +25,8 @@ CREATE TABLE IF NOT EXISTS exams (
 
 /*crea la tabella "registrations" nel caso non esista*/
 /*"registrations" è stata inserita per eliminare la relazione molti a molti tra students ed exams*/
-/* Doppio Vincolo di Integrità (Integrità della Relazione Molti-a-Molti):
-       1. Se lo STUDENTE viene cancellato (es. si ritira), eliminiamo tutti i suoi voti/iscrizioni.
-       2. Se l'ESAME viene annullato (cancellato), eliminiamo tutte le prenotazioni per quella data.
+/*     1. Se lo STUDENTE viene cancellato, eliminiamo tutti i suoi voti/iscrizioni.
+       2. Se l'ESAME viene cancellato, eliminiamo tutte le prenotazioni per quella data.
        
        Il CASCADE ci permette di mantenere il database pulito senza dover cancellare 
        manualmente i voti prima di poter eliminare uno studente o un appello.
