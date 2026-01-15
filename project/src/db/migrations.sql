@@ -1,3 +1,4 @@
+/*crea la tabella students nel caso non esista*/
 CREATE TABLE IF NOT EXISTS students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     matricola TEXT UNIQUE NOT NULL,
@@ -5,6 +6,7 @@ CREATE TABLE IF NOT EXISTS students (
     cognome TEXT NOT NULL
 );
 
+/*crea la tabella courses nel caso non esista*/
 CREATE TABLE IF NOT EXISTS courses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     codice TEXT UNIQUE NOT NULL,
@@ -12,6 +14,7 @@ CREATE TABLE IF NOT EXISTS courses (
     cfu INTEGER NOT NULL
 );
 
+/*crea la tabella exams nel caso non esista*/
 CREATE TABLE IF NOT EXISTS exams (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     course_id INTEGER NOT NULL,
@@ -19,6 +22,7 @@ CREATE TABLE IF NOT EXISTS exams (
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 
+/*crea la tabella registrations nel caso non esista*/
 CREATE TABLE IF NOT EXISTS registrations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_id INTEGER NOT NULL,
