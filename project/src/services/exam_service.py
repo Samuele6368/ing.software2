@@ -5,32 +5,48 @@ from typing import List, Optional, Tuple
 
 from db.database import get_connection
 
-DATE_FORMAT = "%Y-%m-%d"
+#costante per il formato della data da utilizzare
+DATE_FORMAT = "%d-%m-%Y"
 
-
+#Funzione per validare il formato della data
 def _validate_date(date_str: str) -> None:
+
+    #converte la stringa in data secondo il formato specificato
     try:
         datetime.strptime(date_str, DATE_FORMAT)
+
+    #se il formato della data non è valido, viene lanciato un errore
     except ValueError as exc:
-        raise ValueError("Data appello non valida. Usa il formato YYYY-MM-DD.") from exc
+        raise ValueError("Data appello non valida. Usa il formato DD-MM-YYYY.") from exc
 
-
+#Funzione per recuperare un corso dal database dato il suo codice
 def _get_course(conn, course_codice: str):
     return conn.execute("SELECT * FROM courses WHERE codice = ?", (course_codice.strip(),)).fetchone()
 
 
+#Funzione per creare un nuovo appello d'esame
 def create_exam(course_codice: str, data_appello: str) -> dict:
+
+    #Sanificazione dei dati
     course_codice_clean = course_codice.strip()
     data_clean = data_appello.strip()
+
+    #Validazione dei dati
     if not course_codice_clean:
         raise ValueError("Codice corso obbligatorio.")
     if not data_clean:
         raise ValueError("Data appello obbligatoria.")
+
+    #Viene controllata la validità della data
     _validate_date(data_clean)
+
+    #Viene aperta una connessione al database e viene recuparato l'ID del corso
     with get_connection() as conn:
         course = _get_course(conn, course_codice_clean)
         if not course:
             raise ValueError("Corso non trovato.")
+
+        #Controllo se esiste già un appello per quel corso in quella data
         existing = conn.execute(
             "SELECT exams.id FROM exams JOIN courses ON exams.course_id = courses.id "
             "WHERE courses.codice = ? AND exams.data_appello = ?",
@@ -38,11 +54,15 @@ def create_exam(course_codice: str, data_appello: str) -> dict:
         ).fetchone()
         if existing:
             raise ValueError("Esiste già un appello per questo corso in questa data.")
+
+        #Se non è già presente un appello in quella data, viene inserito il nuovo appello nel database
         cur = conn.execute(
             "INSERT INTO exams (course_id, data_appello) VALUES (?, ?)",
             (course["id"], data_clean),
         )
         conn.commit()
+
+        #Vengono restituiti i dettagli del nuovo appello creato
         return {
             "id": cur.lastrowid,
             "course_id": course["id"],
@@ -50,13 +70,15 @@ def create_exam(course_codice: str, data_appello: str) -> dict:
             "data_appello": data_clean,
         }
 
-
+#Funzione per elencare tutti gli appelli d'esame
 def list_exams(course_codice: Optional[str] = None) -> List[dict]:
     base_query = (
         "SELECT exams.id, exams.data_appello, courses.codice, courses.nome "
         "FROM exams JOIN courses ON exams.course_id = courses.id"
     )
     params: Tuple[str, ...] = ()
+
+    #Aggiunta del filtro per codice corso se fornito
     if course_codice:
         base_query += " WHERE courses.codice = ?"
         params = (course_codice.strip(),)

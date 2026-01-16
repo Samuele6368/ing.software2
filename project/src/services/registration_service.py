@@ -4,13 +4,15 @@ from typing import Dict, List
 
 from db.database import get_connection
 
+#Costante per il range valido dei voti. Include il 18 ed esclude il 32.
+#Il voto assegnato a 30 e lode è 31
 VALID_VOTO_RANGE = range(18, 32)
 
-
+#Funzione per recuperare uno studente dal database dato la sua matricola
 def _fetch_student(conn, matricola: str):
     return conn.execute("SELECT * FROM students WHERE matricola = ?", (matricola.strip(),)).fetchone()
 
-
+#Funzione per recuperare un appello d'esame dal database dato il codice del corso e la data dell'appello
 def _fetch_exam(conn, course_codice: str, data_appello: str):
     return conn.execute(
         "SELECT exams.id, exams.data_appello, courses.codice, courses.nome, courses.cfu "
@@ -19,8 +21,10 @@ def _fetch_exam(conn, course_codice: str, data_appello: str):
         (course_codice.strip(), data_appello),
     ).fetchone()
 
-
+#Funzione per iscrivere uno studente a un appello d'esame
 def enroll_student(student_matricola: str, course_codice: str, data_appello: str) -> dict:
+
+    #Sanificazione e validazione dei dati in input
     student_clean = student_matricola.strip()
     course_clean = course_codice.strip()
     date_clean = data_appello.strip()
@@ -30,19 +34,27 @@ def enroll_student(student_matricola: str, course_codice: str, data_appello: str
         raise ValueError("Codice corso obbligatorio.")
     if not date_clean:
         raise ValueError("Data appello obbligatoria.")
+
+    #Connessione al database
     with get_connection() as conn:
+
+        #Verifica dell'esistenza dello studente e dell'appello
         student = _fetch_student(conn, student_clean)
         if not student:
             raise ValueError("Studente non trovato.")
         exam = _fetch_exam(conn, course_clean, date_clean)
         if not exam:
             raise ValueError("Appello non trovato.")
+
+        #Controllo delle iscrizioni duplicate
         duplicate = conn.execute(
             "SELECT id FROM registrations WHERE student_id = ? AND exam_id = ?",
             (student["id"], exam["id"]),
         ).fetchone()
         if duplicate:
             raise ValueError("Studente già iscritto a questo appello.")
+
+        #Inserimento e commit dell'iscrizione
         cur = conn.execute(
             "INSERT INTO registrations (student_id, exam_id) VALUES (?, ?)",
             (student["id"], exam["id"]),
@@ -55,7 +67,7 @@ def enroll_student(student_matricola: str, course_codice: str, data_appello: str
             "stato": "iscritto",
         }
 
-
+#Funzione per registrare il voto di uno studente per un appello d'esame
 def record_grade(
     student_matricola: str,
     course_codice: str,
@@ -66,10 +78,14 @@ def record_grade(
     student_clean = student_matricola.strip()
     course_clean = course_codice.strip()
     date_clean = data_appello.strip()
+
+    #Validazione voto
     if voto not in VALID_VOTO_RANGE:
         raise ValueError("Il voto deve essere compreso tra 18 e 31.")
     if lode and voto != 31:
         raise ValueError("La lode è consentita solo con voto pari a 31.")
+
+    #Connessione al database, recupero studente, appello e iscrizione all'appello
     with get_connection() as conn:
         student = _fetch_student(conn, student_clean)
         if not student:
@@ -83,14 +99,19 @@ def record_grade(
         ).fetchone()
         if not registration:
             raise ValueError("Studente non iscritto all'esame.")
+
+        #Aggiornamento del voto, verbalizzazione del voto sul libretto
         conn.execute(
             "UPDATE registrations SET voto = ?, lode = ?, stato = ? WHERE id = ?",
             (voto, int(lode), "verbalizzato", registration["id"]),
         )
         conn.commit()
+
+    # Restituzione del libretto aggiornato dello studente
     return get_transcript(student_clean)
 
 
+#Funzione per recuperare il libretto di uno studente
 def get_transcript(student_matricola: str) -> dict:
     student_clean = student_matricola.strip()
     if not student_clean:
@@ -109,6 +130,8 @@ def get_transcript(student_matricola: str) -> dict:
             "ORDER BY exams.data_appello",
             (student["id"],),
         ).fetchall()
+
+        #Calcolo della media e dei CFU totali
         exams_info: List[Dict[str, object]] = []
         total_cfu = 0
         graded_scores: List[int] = []
@@ -124,10 +147,14 @@ def get_transcript(student_matricola: str) -> dict:
                 "cfu": row["cfu"],
             }
             exams_info.append(record)
+
+            #Controllo se il voto è stato registrato per calcolare media e CFU
             if row["voto"] is not None:
                 graded_scores.append(row["voto"])
                 if row["stato"] == "verbalizzato":
                     total_cfu += row["cfu"]
+
+        #Calcolo della media arrotondata a due decimali
         average = round(sum(graded_scores) / len(graded_scores), 2) if graded_scores else None
         return {
             "student": {
@@ -141,7 +168,7 @@ def get_transcript(student_matricola: str) -> dict:
             "total_cfu": total_cfu,
         }
 
-
+#Funzione per cancellare l'iscrizione di uno studente a un appello d'esame
 def delete_registration(student_matricola: str, course_codice: str, data_appello: str) -> None:
     student_clean = student_matricola.strip()
     course_clean = course_codice.strip()
@@ -161,7 +188,7 @@ def delete_registration(student_matricola: str, course_codice: str, data_appello
             raise ValueError("Registration not found.")
         conn.commit()
 
-
+#funzione per cancellare un voto verbalizzato
 def delete_grade(student_matricola: str, course_codice: str, data_appello: str) -> dict:
     student_clean = student_matricola.strip()
     course_clean = course_codice.strip()
@@ -179,14 +206,17 @@ def delete_grade(student_matricola: str, course_codice: str, data_appello: str) 
         ).fetchone()
         if not registration:
             raise ValueError("Registration not found.")
+
+        #Il voto viene riportato a NULL e lo stato a "iscritto"
         conn.execute(
             "UPDATE registrations SET voto = NULL, lode = 0, stato = 'iscritto' WHERE id = ?",
             (registration["id"],),
         )
         conn.commit()
+
     return get_transcript(student_clean)
 
-
+#Funzione per elencare tutte le iscrizioni agli appelli d'esame
 def list_registrations() -> List[Dict[str, object]]:
     with get_connection() as conn:
         rows = conn.execute(

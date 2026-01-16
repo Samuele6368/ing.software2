@@ -133,7 +133,7 @@ class StudentExamGUI:
         course_combo = ttk.Combobox(exam_form, textvariable=self.var_exam_course, state="readonly")
         course_combo.grid(row=0, column=1, padx=5, pady=2)
         self.course_selectors.append(course_combo) 
-        ttk.Label(exam_form, text="Data (YYYY-MM-DD)").grid(row=1, column=0, sticky="w")
+        ttk.Label(exam_form, text="Data (DD-MM-YYYY)").grid(row=1, column=0, sticky="w")
         ttk.Entry(exam_form, textvariable=self.var_exam_date).grid(row=1, column=1, padx=5, pady=2)
         ttk.Button(exam_form, text="Crea appello", command=self._add_exam).grid(row=0, column=2, rowspan=2, padx=10)
 
