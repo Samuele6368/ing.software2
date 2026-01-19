@@ -152,14 +152,10 @@ class StudentExamGUI:
 
         exams_frame = ttk.LabelFrame(tables, text="Appelli", padding=10)
         exams_frame.pack(side="right", fill="both", expand=True, padx=5)
-        
-        # --- TABELLA APPELLI CON DATA ---
         self.exams_tree = ttk.Treeview(exams_frame, columns=("codice", "nome", "data"), show="headings")
         self.exams_tree.heading("codice", text="Codice")
         self.exams_tree.heading("nome", text="Corso")
         self.exams_tree.heading("data", text="Data")
-        
-        # Impostiamo la larghezza per assicurare che si vedano
         self.exams_tree.column("codice", width=100)
         self.exams_tree.column("nome", width=150)
         self.exams_tree.column("data", width=120)
