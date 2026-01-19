@@ -1,7 +1,6 @@
-# SETUP
 from __future__ import annotations  # Permette la valutazione ritardata delle annotazioni
 
-import tkinter as tk                # Libreia tkinter per l'interfaccia grafica
+import tkinter as tk                # Libreria tkinter per l'interfaccia grafica
 from tkinter import messagebox, ttk
 
 from api import api                 # Importa l'API per la gestione degli studenti e degli esami
@@ -133,7 +132,7 @@ class StudentExamGUI:
         course_combo = ttk.Combobox(exam_form, textvariable=self.var_exam_course, state="readonly")
         course_combo.grid(row=0, column=1, padx=5, pady=2)
         self.course_selectors.append(course_combo) 
-        ttk.Label(exam_form, text="Data (DD-MM-YYYY)").grid(row=1, column=0, sticky="w")
+        ttk.Label(exam_form, text="Data (YYYY-MM-DD)").grid(row=1, column=0, sticky="w")
         ttk.Entry(exam_form, textvariable=self.var_exam_date).grid(row=1, column=1, padx=5, pady=2)
         ttk.Button(exam_form, text="Crea appello", command=self._add_exam).grid(row=0, column=2, rowspan=2, padx=10)
 
@@ -145,6 +144,7 @@ class StudentExamGUI:
         self.courses_tree = ttk.Treeview(courses_frame, columns=("codice", "nome", "cfu"), show="headings")
         for col in ("codice", "nome", "cfu"):
             self.courses_tree.heading(col, text=col.capitalize())
+            self.courses_tree.column(col, width=100) # Larghezza colonne corsi
         self.courses_tree.pack(fill="both", expand=True)
         course_btns = ttk.Frame(courses_frame)
         course_btns.pack(fill="x", pady=5)
@@ -152,10 +152,18 @@ class StudentExamGUI:
 
         exams_frame = ttk.LabelFrame(tables, text="Appelli", padding=10)
         exams_frame.pack(side="right", fill="both", expand=True, padx=5)
+        
+        # --- TABELLA APPELLI CON DATA ---
         self.exams_tree = ttk.Treeview(exams_frame, columns=("codice", "nome", "data"), show="headings")
         self.exams_tree.heading("codice", text="Codice")
         self.exams_tree.heading("nome", text="Corso")
         self.exams_tree.heading("data", text="Data")
+        
+        # Impostiamo la larghezza per assicurare che si vedano
+        self.exams_tree.column("codice", width=100)
+        self.exams_tree.column("nome", width=150)
+        self.exams_tree.column("data", width=120)
+        
         self.exams_tree.pack(fill="both", expand=True)
         exam_btns = ttk.Frame(exams_frame)
         exam_btns.pack(fill="x", pady=5)
