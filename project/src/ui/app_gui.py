@@ -13,7 +13,7 @@ class StudentExamGUI:
     # Inizializza la finestra principale
     def __init__(self, root: tk.Tk):  
         self.root = root
-        self.root.title("StudentExamManager")
+        self.root.title("UniLifeManager")
         self.root.geometry("1200x720")
 
         # Inizializza liste vuote per tenere traccia dei menu a tendina (Combobox)
